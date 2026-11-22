@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BeeMCP · Beeminder for Claude</title>
+<meta name="description" content="Connect your Beeminder goals to Claude with one URL. Sign in with Beeminder, no API keys, nothing stored.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path d='M32 4 56 18v28L32 60 8 46V18z' fill='%23f5b800'/></svg>">
+<style>
+:root{--ink:#1d1a12;--muted:#6b6455;--bg:#fbf7ec;--card:#fff;--line:#e8dfc7;--bee:#f5b800;--bee2:#ffe9a6;--red:#d6453d;--green:#2f8f4e}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:inherit}
+.wrap{max-width:980px;margin:0 auto;padding:0 22px}
+header{padding:22px 0;display:flex;justify-content:space-between;align-items:center}
+.logo{display:flex;gap:10px;align-items:center;font-weight:800;letter-spacing:-.02em;font-size:19px;text-decoration:none}
+.hex{width:26px;height:26px;background:var(--bee);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+nav a{color:var(--muted);text-decoration:none;margin-left:18px;font-size:15px}
+.hero{padding:56px 0 30px;display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center}
+h1{font-size:clamp(36px,5.4vw,60px);line-height:1.02;letter-spacing:-.035em;margin:0 0 18px}
+h1 em{font-style:normal;background:linear-gradient(transparent 62%,var(--bee2) 62%)}
+.lede{color:var(--muted);font-size:19px;max-width:36ch;margin:0 0 28px}
+.url{display:flex;align-items:stretch;border:1.5px solid var(--ink);border-radius:14px;overflow:hidden;background:#fff;max-width:520px}
+.url code{flex:1;padding:14px 16px;font:15px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap;overflow:auto}
+.url button{border:0;background:var(--ink);color:#fff;font:600 15px inherit;font-family:inherit;padding:0 20px;cursor:pointer}
+.small{color:var(--muted);font-size:14px;margin-top:10px}
+.chat{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 30px 60px -40px #3a2f0b66}
+.msg{padding:10px 14px;border-radius:14px;margin:8px 0;font-size:15px;max-width:90%}
+.me{background:var(--ink);color:#fff;margin-left:auto;border-bottom-right-radius:4px}
+.ai{background:#f6f1e2;border-bottom-left-radius:4px}
+.tool{font:12px ui-monospace,Menlo,monospace;color:var(--muted);margin:6px 2px}
+.goal{display:flex;justify-content:space-between;gap:8px;font-size:14px;padding:4px 0}
+.pill{font-size:12px;font-weight:700;padding:1px 8px;border-radius:99px;color:#fff}
+section{padding:46px 0;border-top:1px solid var(--line)}
+h2{font-size:28px;letter-spacing:-.02em;margin:0 0 22px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;counter-reset:s}
+.step{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px}
+.step:before{counter-increment:s;content:counter(s);display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--bee);font-weight:800;margin-bottom:12px}
+.step h3{margin:0 0 6px;font-size:17px}.step p{margin:0;color:var(--muted);font-size:15px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tabs button{font:600 14px inherit;font-family:inherit;padding:8px 14px;border-radius:99px;border:1px solid var(--line);background:#fff;cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 24px}
+.panel ol{margin:0;padding-left:20px}.panel li{margin:6px 0}
+pre{background:#1d1a12;color:#f8eecf;padding:14px 16px;border-radius:12px;overflow:auto;font:14px ui-monospace,Menlo,monospace}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.t{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.t code{font:600 14px ui-monospace,Menlo,monospace}.t p{margin:4px 0 0;color:var(--muted);font-size:14px}
+.faq details{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin:10px 0}
+.faq summary{font-weight:700;cursor:pointer}.faq p{color:var(--muted);margin:10px 0 0}
+footer{padding:30px 0 50px;color:var(--muted);font-size:14px;border-top:1px solid var(--line)}
+@media (max-width:820px){.hero{grid-template-columns:1fr;padding-top:24px}.steps{grid-template-columns:1fr}.grid{grid-template-columns:1fr}nav{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <a class="logo" href="/"><span class="hex"></span>BeeMCP</a>
+  <nav><a href="#setup">Setup</a><a href="#tools">Tools</a><a href="#privacy">Privacy</a></nav>
+</header>
+
+<div class="hero">
+  <div>
+    <h1>Talk to your <em>Beeminder</em> goals.</h1>
+    <p class="lede">Paste one URL into Claude, approve on Beeminder, done. Log datapoints, see what's about to derail, and keep goals on track by chatting.</p>
+    <div class="url"><code id="mcpUrl">https://beemcp.dev/mcp</code><button id="copy" type="button">Copy</button></div>
+    <p class="small">No API keys. No account here. Works in Claude on web, desktop and mobile, Claude Code, and other MCP clients.</p>
+  </div>
+  <div class="chat" aria-hidden="true">
+    <div class="msg me">What's due today? I just did 4 km.</div>
+    <div class="tool">⚙ list_goals · add_datapoint(run, 4)</div>
+    <div class="msg ai">Logged 4 km on <b>run</b>. That covers today's bare minimum.
+      <div class="goal"><span>run</span><span class="pill" style="background:var(--green)">safe 2 days</span></div>
+      <div class="goal"><span>read</span><span class="pill" style="background:var(--red)">due today · 12 pages</span></div>
+      Want a reminder to read before bed?</div>
+  </div>
+</div>
+
+<section>
+  <h2>How it works</h2>
+  <div class="steps">
+    <div class="step"><h3>Add the URL</h3><p>Add a custom connector in Claude and paste the URL above.</p></div>
+    <div class="step"><h3>Approve on Beeminder</h3><p>Claude opens a sign-in window. You approve on beeminder.com, so your password never comes here.</p></div>
+    <div class="step"><h3>Just ask</h3><p>"Log 30 minutes of guitar", "what's about to derail?", "ratchet my reading goal to 2 days".</p></div>
+  </div>
+</section>
+
+<section id="setup">
+  <h2>Setup</h2>
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-p="claude">Claude (web &amp; desktop)</button>
+    <button role="tab" aria-selected="false" data-p="mobile">Claude mobile</button>
+    <button role="tab" aria-selected="false" data-p="code">Claude Code</button>
+    <button role="tab" aria-selected="false" data-p="other">Other clients</button>
+  </div>
+  <div class="panel" id="claude"><ol>
+    <li>Open <b>Settings → Connectors</b> and choose <b>Add custom connector</b>.</li>
+    <li>Name it <b>Beeminder</b> and paste <code class="u">https://beemcp.dev/mcp</code>. Leave the advanced settings alone.</li>
+    <li>Click <b>Connect</b>, review the request, then approve on Beeminder.</li>
+    <li>In a chat, enable the connector from the tools menu and ask about your goals.</li>
+  </ol><p class="small">Custom connectors are available on Claude's paid plans. On Team/Enterprise an owner may need to add it first.</p></div>
+  <div class="panel" id="mobile" hidden><p style="margin-top:0">Add the connector once on claude.ai or the desktop app (steps on the first tab). It then shows up in the Claude iOS and Android apps automatically.</p></div>
+  <div class="panel" id="code" hidden><pre>claude mcp add --transport http beeminder <span class="u">https://beemcp.dev/mcp</span></pre><p class="small">Then run <code>/mcp</code> inside Claude Code and choose Authenticate.</p></div>
+  <div class="panel" id="other" hidden><p style="margin-top:0">Any client that supports remote MCP over Streamable HTTP with OAuth (Cursor, VS Code, MCP Inspector…) can use the URL directly. Older stdio-only clients can go through <code>mcp-remote</code>:</p><pre>npx mcp-remote <span class="u">https://beemcp.dev/mcp</span></pre></div>
+</section>
+
+<section id="tools">
+  <h2>What Claude can do</h2>
+  <div class="grid">
+    <div class="t"><code>list_goals</code><p>Every goal, most urgent first: buffer, bare minimum, derail time.</p></div>
+    <div class="t"><code>get_goal</code><p>One goal's details, with recent datapoints if you want them.</p></div>
+    <div class="t"><code>add_datapoint</code><p>Log progress, including backdating to an earlier day.</p></div>
+    <div class="t"><code>update_datapoint</code> · <code>delete_datapoint</code><p>Fix typos and mistakes.</p></div>
+    <div class="t"><code>list_datapoints</code><p>Browse a goal's history.</p></div>
+    <div class="t"><code>ratchet_goal</code><p>Cut a goal's safety buffer to keep yourself honest.</p></div>
+    <div class="t"><code>refresh_goal</code><p>Re-pull autodata goals such as fitness trackers.</p></div>
+    <div class="t"><code>get_user</code><p>Your timezone, deadline and goal list.</p></div>
+  </div>
+</section>
+
+<section id="privacy" class="faq">
+  <h2>Privacy &amp; FAQ</h2>
+  <details open><summary>What do you store?</summary><p>Nothing. There's no database. When you approve, Beeminder gives this server an access token. That token is encrypted (AES-256-GCM) into the token Claude keeps, and only this server can decrypt it, per request. Your Beeminder password never reaches this site.</p></details>
+  <details><summary>How do I disconnect?</summary><p>Remove the connector in Claude. To cut access completely, revoke the app in Beeminder under Account settings → Apps &amp; API. Any token Claude still holds stops working right away.</p></details>
+  <details><summary>Can it charge me money?</summary><p>It can't change pledges or create new goals. Ratcheting and adding or deleting datapoints do affect whether a goal derails, so Claude is told to check with you before doing those.</p></details>
+  <details><summary>Is this made by Beeminder?</summary><p>No. It's an independent open-source project that uses Beeminder's public API and OAuth. You can host your own copy on Netlify in a few minutes.</p></details>
+</section>
+
+<footer>BeeMCP is not affiliated with Beeminder. Beeminder is a trademark of its owners. · <a href="https://api.beeminder.com/">Beeminder API</a> · <a href="https://modelcontextprotocol.io/">Model Context Protocol</a></footer>
+</div>
+<script>
+  const url = location.origin.startsWith("http") ? location.origin + "/mcp" : "https://beemcp.dev/mcp";
+  document.getElementById("mcpUrl").textContent = url;
+  document.querySelectorAll(".u").forEach(e => e.textContent = url);
+  const btn = document.getElementById("copy");
+  btn.onclick = async () => {
+    try { await navigator.clipboard.writeText(url); btn.textContent = "Copied"; }
+    catch { getSelection().selectAllChildren(document.getElementById("mcpUrl")); btn.textContent = "Select ⌘C"; }
+    setTimeout(() => btn.textContent = "Copy", 1600);
+  };
+  document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
+    document.querySelectorAll(".tabs button").forEach(x => x.setAttribute("aria-selected", x === b));
+    document.querySelectorAll(".panel").forEach(p => p.hidden = p.id !== b.dataset.p);
+  });
+</script>
+</body>
+</html>

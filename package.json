@@ -1,0 +1,26 @@
+{
+  "name": "beemcp",
+  "version": "1.0.0",
+  "description": "Remote MCP server for Beeminder: paste one URL into Claude and sign in with Beeminder.",
+  "scripts": {
+    "dev": "netlify dev",
+    "typecheck": "tsc",
+    "test": "tsx scripts/e2e.ts"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@netlify/functions": "^6.1.1",
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,71 +1,108 @@
 # BeeMCP: Beeminder for Claude
 
-A remote MCP server for [Beeminder](https://www.beeminder.com). Users paste one URL (`https://beemcp.dev/mcp`) into Claude, approve on Beeminder, and they're done. There are no API keys to copy and no database to run.
-
-## How it works
+A remote [MCP](https://modelcontextprotocol.io) server for [Beeminder](https://www.beeminder.com).
+To connect, paste one URL into Claude and approve on Beeminder. There's no API key to copy and no account to create.
 
 ```
-Claude ──► /mcp (401 + resource metadata)
-       ──► /.well-known/oauth-authorization-server
-       ──► /register            (Dynamic Client Registration, or a Client ID Metadata Document URL)
-       ──► /authorize           consent page: "Claude wants access to your Beeminder"
-                └─► beeminder.com/apps/authorize ──► /oauth/callback?access_token=…
-       ◄── redirect with ?code  (auth code = sealed Beeminder token, 2 min TTL)
-       ──► /token  (PKCE S256)  ► access_token (30 days) + refresh_token
-       ──► /mcp  Bearer …       ► Beeminder API
+https://beemcp.netlify.app/mcp
 ```
 
-- **Stateless.** Every artifact (client_id, pending request, code, access and refresh tokens) is AES-256-GCM-encrypted JSON sealed with `TOKEN_SECRET`. No DB, no Blobs.
-- **Confused-deputy safe.** Because any client can register, our own consent screen runs before Beeminder's (Beeminder may auto-approve repeat visits). The approve POST is CSRF-bound with a SameSite=Lax cookie and an Origin check. The page also can't be framed.
-- **PKCE S256 required.** Public clients only.
-- **Streamable HTTP with short-lived SSE.** Each request gets a fresh MCP server, which fits serverless. Each POST streams its notifications and then the result, then closes.
+**Tools:** `list_goals` · `get_goal` · `list_datapoints` · `add_datapoint` · `update_datapoint` · `delete_datapoint` · `ratchet_goal` · `refresh_goal` · `get_user`
 
-## Logs: what the client sees
+## Connecting
 
-Every tool call reports its steps as it goes (`Started add_datapoint` → `Adding 5 to "run"` → `Beeminder POST …/datapoints.json → 200 (180 ms)` → `Done in 190 ms`, or `Failed: …`):
+1. In Claude, go to **Settings → Connectors → Add custom connector** and paste the URL above.
+2. BeeMCP shows which app is asking for access. Click **Continue to Beeminder**.
+3. Approve on beeminder.com. You're sent back to Claude, connected.
 
-- as MCP `notifications/message` log events, streamed live (shown by MCP Inspector, Claude Code and other clients that display server logs),
-- as `notifications/progress` when the client sends a `progressToken`,
-- and as an `activity` array in the tool result itself, so it's visible in Claude's expandable tool-call view.
+To disconnect, remove the connector in Claude. To cut access everywhere at once, revoke the app in Beeminder's account settings.
 
-The OAuth flow writes one structured line per step to the Netlify function log (`client_registered`, `consent_shown`, `consent_approved`, `beeminder_authorized`, `token_issued`, `token_failed` with a reason…).
+## How your data is stored
 
-**No secrets in logs.** No log line ever includes the Beeminder token, sealed tokens, codes, PKCE verifiers or `TOKEN_SECRET`. All log output also passes through `redact()`, which masks the user's token and anything shaped like `access_token=…`, `Bearer …` or a sealed `bm?_…` token, even when Beeminder echoes one back in an error. `npm test` checks this against everything the client receives and everything the server logs.
+The short answer: it isn't stored anywhere. BeeMCP has no database.
 
-Tools: `get_user`, `list_goals`, `get_goal`, `list_datapoints`, `add_datapoint`, `update_datapoint`, `delete_datapoint`, `ratchet_goal`, `refresh_goal`.
+When you approve, Beeminder gives BeeMCP an access token for your account. BeeMCP encrypts that token and hands the encrypted result to Claude as Claude's own access token. Only BeeMCP can decrypt it, and only for the length of one request.
 
-## Deploy on Netlify
+```mermaid
+flowchart LR
+    B["Beeminder token<br/>+ your username<br/>+ client id"] -->|"AES-256-GCM<br/>key = TOKEN_SECRET"| T["bma_…<br/>(opaque token)"]
+    T -->|"held by"| C[Claude]
+    C -->|"Authorization: Bearer bma_…"| S["BeeMCP<br/>(decrypts in memory)"]
+    S -->|"your Beeminder token"| API[Beeminder API]
+```
 
-1. **Register a Beeminder app** at <https://www.beeminder.com/apps/new>:
-   - Redirect URL: `https://YOUR_DOMAIN/oauth/callback` (it must match exactly)
-   - Post de-authorization callback (optional): `https://YOUR_DOMAIN/oauth/deauthorize`
-   - Copy the **client ID**.
-2. **Create the Netlify site** from this repo (build settings come from `netlify.toml`).
-3. **Set environment variables** (Site configuration → Environment variables):
-   | Var | Value |
+What's inside the token Claude holds:
+
+```
+bma_ + base64url( IV ‖ ciphertext ‖ tag )
+                  │    │            └─ 16-byte tag: any change to the token makes decryption fail
+                  │    └─ AES-256-GCM encryption of:
+                  │         { "bm":  "<your Beeminder access token>",
+                  │           "u":   "stolati21",
+                  │           "cid": "<which app connected>",
+                  │           "typ": "access", "iat": 1763852400, "exp": 1766444400 }
+                  └─ 12 random bytes, new for every token
+```
+
+- **Without `TOKEN_SECRET` the token is unreadable**, and tampering with it makes decryption fail.
+- **Every value in the sign-in flow uses the same format**, with a different prefix and lifetime:
+
+  | Prefix | What it is | Lifetime |
+  |---|---|---|
+  | `bmc_` | registered app (client id) | none |
+  | `bmp_` | sign-in in progress | 10 min |
+  | `bmo_` | one-time authorization code | 2 min |
+  | `bma_` | access token | 30 days |
+  | `bmr_` | refresh token | until Beeminder access is revoked |
+
+- **Revoking** the app in Beeminder kills the Beeminder token inside every copy, so they all stop working.
+- **Rotating `TOKEN_SECRET`** makes every existing token unreadable, which signs everyone out.
+
+## What gets logged
+
+- **To you, in Claude:** every tool result includes a short `activity` list of what happened. These lines are part of the answer Claude already receives; nothing extra is sent anywhere. For example:
+  `Adding 5 to "run"` → `Beeminder POST …/datapoints.json → 200 (180 ms)` → `Done`
+- **To the host (Netlify function log):** one line per sign-in step, such as `consent_shown`, `token_issued` or `token_failed: pkce_mismatch`, so you can debug a failed connection.
+
+Neither one ever contains a token, code or secret. As a safety net, everything logged also passes through a filter that masks anything token-shaped. `npm test` checks every response and every log line for each secret.
+
+## Security
+
+- **BeeMCP's own approval page runs before Beeminder's.** Any app can register with BeeMCP, and Beeminder may skip its approval screen for someone who approved before. Without this page, another app could quietly get a user's access. The page can't be embedded in another site, and its approve button only works from the page itself (CSRF protection). The button locks after the first click.
+- **PKCE (S256) is required**, so an intercepted sign-in code is useless on its own.
+- **Rate limits** are 60 requests/min for sign-in and 300 requests/min for MCP, per IP.
+
+## Deploy your own (Netlify)
+
+1. Register an app at <https://www.beeminder.com/apps/new>:
+   - Redirect URL: `https://YOUR_SITE/oauth/callback`
+   - Post de-authorization callback: `https://YOUR_SITE/oauth/deauthorize`
+   - Autofetch callback: leave empty
+2. Import this repo into Netlify. The build settings come from `netlify.toml`.
+3. Set environment variables:
+
+   | Variable | Value |
    |---|---|
-   | `BEEMINDER_CLIENT_ID` | from step 1 |
-   | `TOKEN_SECRET` | `openssl rand -hex 32`. Changing it signs everyone out. |
-   | `PUBLIC_BASE_URL` | optional, e.g. `https://beemcp.dev`. Pins the OAuth issuer if you serve several hostnames. |
-4. **Add the custom domain** (Domain management) and let Netlify provision HTTPS.
-5. In Claude: Settings → Connectors → Add custom connector → `https://YOUR_DOMAIN/mcp`.
+   | `BEEMINDER_CLIENT_ID` | the app's **ID** (not the secret; BeeMCP doesn't use the secret) |
+   | `TOKEN_SECRET` | a long random string, e.g. `openssl rand -hex 32` |
+   | `PUBLIC_BASE_URL` | optional; pins the public URL if the site has several hostnames |
 
-Beeminder allows only one redirect URL per app, so deploy previews can't complete sign-in. Use a second Beeminder app for a staging site.
+4. Redeploy so the variables take effect, then connect with `https://YOUR_SITE/mcp`.
+
+Beeminder allows one redirect URL per app, so sign-in only works on the site that URL points to, not on deploy previews.
 
 ## Develop
 
 ```bash
 npm install
 npm run typecheck
-npm test            # full OAuth + MCP flow against a mock Beeminder API
-npx netlify dev     # local server at http://localhost:8888
-npx @modelcontextprotocol/inspector   # point it at http://localhost:8888/mcp
+npm test            # full sign-in + tool calls against a fake Beeminder
+npx netlify dev     # http://localhost:8888
 ```
 
-## Known trade-offs
+## Limitations
 
-- Auth codes are single-use only within their 2-minute TTL. PKCE plus the TTL limits replay, but there's no stateless way to enforce one-time use. Add Netlify Blobs if you need it.
-- Revocation happens through Beeminder: when a user revokes the app, every sealed token stops working on its next API call.
-- Rate limits are set in each function's `config.rateLimit` (60/min OAuth, 300/min MCP, per IP).
+- Without a database, an authorization code can't be strictly single-use. It expires after 2 minutes and needs the PKCE verifier, which covers the practical risk.
+- Each connection can access the whole Beeminder account. Beeminder's sign-in has no per-goal permissions.
 
 Not affiliated with Beeminder.

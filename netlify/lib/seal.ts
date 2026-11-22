@@ -27,6 +27,10 @@ function b64url(bytes: Uint8Array): string {
 
 export type SealType = "client" | "pending" | "code" | "access" | "refresh";
 
+// Visible prefix per type, so you can tell values apart at a glance.
+// (The type is also bound into the encryption, so one can never be used as another.)
+const PREFIX: Record<SealType, string> = { client: "bmc_", pending: "bmp_", code: "bmo_", access: "bma_", refresh: "bmr_" };
+
 export async function seal<T extends object>(typ: SealType, payload: T, ttlSeconds?: number): Promise<string> {
   const body = { ...payload, typ, iat: now(), ...(ttlSeconds ? { exp: now() + ttlSeconds } : {}) };
   const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -36,12 +40,12 @@ export async function seal<T extends object>(typ: SealType, payload: T, ttlSecon
   const out = new Uint8Array(iv.length + ct.length);
   out.set(iv);
   out.set(ct, iv.length);
-  return `bm${typ[0]}_${b64url(out)}`;
+  return `${PREFIX[typ]}${b64url(out)}`;
 }
 
 export async function unseal<T>(typ: SealType, token: string | null | undefined): Promise<(T & { iat: number; exp?: number }) | null> {
   if (!token) return null;
-  const prefix = `bm${typ[0]}_`;
+  const prefix = PREFIX[typ];
   if (!token.startsWith(prefix)) return null;
   try {
     const raw = Buffer.from(token.slice(prefix.length), "base64url");

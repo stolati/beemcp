@@ -238,7 +238,7 @@ async function authorizePost(req: Request, origin: string): Promise<Response> {
 
   audit("consent_approved", { client_name: pending.cn, redirect_host: hostOf(pending.ru) });
   const bmAuth = new URL("https://www.beeminder.com/apps/authorize");
-  bmAuth.searchParams.set("client_id", process.env.BEEMINDER_CLIENT_ID!);
+  bmAuth.searchParams.set("client_id", process.env.BEEMINDER_CLIENT_ID!.trim());
   bmAuth.searchParams.set("redirect_uri", `${origin}/oauth/callback`);
   bmAuth.searchParams.set("response_type", "token");
 

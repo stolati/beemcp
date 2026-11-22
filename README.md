@@ -18,7 +18,19 @@ Claude ──► /mcp (401 + resource metadata)
 - **Stateless.** Every artifact (client_id, pending request, code, access and refresh tokens) is AES-256-GCM-encrypted JSON sealed with `TOKEN_SECRET`. No DB, no Blobs.
 - **Confused-deputy safe.** Because any client can register, our own consent screen runs before Beeminder's (Beeminder may auto-approve repeat visits). The approve POST is CSRF-bound with a SameSite=Lax cookie and an Origin check. The page also can't be framed.
 - **PKCE S256 required.** Public clients only.
-- **Streamable HTTP, JSON responses.** Each request gets a fresh MCP server, which fits serverless.
+- **Streamable HTTP with short-lived SSE.** Each request gets a fresh MCP server, which fits serverless. Each POST streams its notifications and then the result, then closes.
+
+## Logs: what the client sees
+
+Every tool call reports its steps as it goes (`Started add_datapoint` → `Adding 5 to "run"` → `Beeminder POST …/datapoints.json → 200 (180 ms)` → `Done in 190 ms`, or `Failed: …`):
+
+- as MCP `notifications/message` log events, streamed live (shown by MCP Inspector, Claude Code and other clients that display server logs),
+- as `notifications/progress` when the client sends a `progressToken`,
+- and as an `activity` array in the tool result itself, so it's visible in Claude's expandable tool-call view.
+
+The OAuth flow writes one structured line per step to the Netlify function log (`client_registered`, `consent_shown`, `consent_approved`, `beeminder_authorized`, `token_issued`, `token_failed` with a reason…).
+
+**No secrets in logs.** No log line ever includes the Beeminder token, sealed tokens, codes, PKCE verifiers or `TOKEN_SECRET`. All log output also passes through `redact()`, which masks the user's token and anything shaped like `access_token=…`, `Bearer …` or a sealed `bm?_…` token, even when Beeminder echoes one back in an error. `npm test` checks this against everything the client receives and everything the server logs.
 
 Tools: `get_user`, `list_goals`, `get_goal`, `list_datapoints`, `add_datapoint`, `update_datapoint`, `delete_datapoint`, `ratchet_goal`, `refresh_goal`.
 

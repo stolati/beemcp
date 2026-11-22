@@ -17,14 +17,14 @@ export function oauthError(error: string, description: string, status = 400): Re
   return json({ error, error_description: description }, status);
 }
 
-export function html(body: string, status = 200, extra: Record<string, string> = {}): Response {
+export function html(body: string, status = 200, extra: Record<string, string> = {}, scriptNonce?: string): Response {
   return new Response(body, {
     status,
     headers: {
       "Content-Type": "text/html; charset=utf-8",
       "Cache-Control": "no-store",
       "X-Frame-Options": "DENY",
-      "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'",
+      "Content-Security-Policy": `default-src 'none'; style-src 'unsafe-inline';${scriptNonce ? ` script-src 'nonce-${scriptNonce}';` : ""} form-action 'self' https://www.beeminder.com; frame-ancestors 'none'`,
       "Referrer-Policy": "no-referrer",
       ...extra,
     },
@@ -74,7 +74,7 @@ h1{font-size:22px;margin:0 0 8px}p{color:var(--muted);margin:8px 0}
 .who b{color:var(--ink)}code{font:13px ui-monospace,Menlo,monospace;background:#f3eddc;padding:2px 6px;border-radius:6px;word-break:break-all}
 ul{padding-left:20px;color:var(--muted);margin:8px 0 18px}
 .row{display:flex;gap:10px;margin-top:22px}button{flex:1;font:inherit;font-weight:600;padding:12px;border-radius:12px;border:1px solid var(--line);background:#fff;cursor:pointer}
-button.primary{background:var(--go);color:#fff;border-color:var(--go)}.dot{width:12px;height:12px;border-radius:50%;background:var(--bee);flex:none}
-.warn{color:#8a5a00;background:#fff4d6;border-radius:10px;padding:10px 12px;font-size:14px}
+button:disabled{opacity:.55;cursor:progress}button.primary{background:var(--go);color:#fff;border-color:var(--go)}.dot{width:12px;height:12px;border-radius:50%;background:var(--bee);flex:none}
+.small{font-size:14px;min-height:1.2em}.warn{color:#8a5a00;background:#fff4d6;border-radius:10px;padding:10px 12px;font-size:14px}
 </style></head><body><main class="card">${inner}</main></body></html>`;
 }

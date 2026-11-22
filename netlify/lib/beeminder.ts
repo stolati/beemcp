@@ -8,10 +8,27 @@ export class BeeminderError extends Error {
   }
 }
 
+export type ApiHook = (e: { method: string; path: string; status: number; ms: number }) => unknown;
+
 export class Beeminder {
-  constructor(private accessToken: string) {}
+  constructor(private accessToken: string, private onCall?: ApiHook) {}
 
   async call<T = any>(method: string, path: string, params: Record<string, unknown> = {}): Promise<T> {
+    const started = Date.now();
+    let status = 0;
+    try {
+      const { status: s, data } = await this.raw<T>(method, path, params);
+      status = s;
+      return data;
+    } catch (e) {
+      status = e instanceof BeeminderError ? e.status : 0;
+      throw e;
+    } finally {
+      await this.onCall?.({ method, path, status, ms: Date.now() - started });
+    }
+  }
+
+  private async raw<T>(method: string, path: string, params: Record<string, unknown>): Promise<{ status: number; data: T }> {
     const url = new URL(BASE + path);
     const form = new URLSearchParams();
     const all: Record<string, unknown> = { ...params, access_token: this.accessToken };
@@ -39,7 +56,7 @@ export class Beeminder {
         (typeof data === "string" ? data.slice(0, 300) : `HTTP ${res.status}`);
       throw new BeeminderError(res.status, `Beeminder API ${res.status}: ${msg}`);
     }
-    return data as T;
+    return { status: res.status, data: data as T };
   }
 
   me() {

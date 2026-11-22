@@ -22,11 +22,13 @@ export default async (req: Request): Promise<Response> => {
     });
   }
 
-  // Stateless JSON-only server: a GET would open an SSE stream a function can't hold open.
+  // Stateless: each POST is answered with a short-lived SSE stream that carries the
+  // tool's live log/progress notifications, then the result, then closes.
+  // A bare GET would open a never-ending stream, which a function can't hold open.
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: { ...CORS, Allow: "POST, OPTIONS" } });
 
   const server = buildServer(grant.bm, grant.u);
-  const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
+  const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: false });
   await server.connect(transport);
   const res = await transport.handleRequest(req);
   const headers = new Headers(res.headers);

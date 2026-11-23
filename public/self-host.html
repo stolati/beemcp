@@ -42,6 +42,8 @@ td:first-child{white-space:nowrap}
 .note{border-left:4px solid var(--bee);background:#fff8e0;padding:12px 16px;border-radius:0 12px 12px 0;margin:14px 0}
 .warn{border-left-color:var(--red);background:#fdecea}
 .small{color:var(--muted);font-size:14px}
+.secret pre{white-space:pre-wrap;word-break:break-all}
+.link{border:0;background:none;padding:0;font:inherit;color:inherit;text-decoration:underline;cursor:pointer}
 .copyable{position:relative}.copyable pre{padding-right:72px}
 .copyable button{position:absolute;top:8px;right:8px;font:600 12px inherit;font-family:inherit;border:0;border-radius:8px;padding:5px 10px;background:#3b352a;color:#f8eecf;cursor:pointer}
 .faq details{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin:10px 0}
@@ -63,7 +65,7 @@ footer{padding:30px 0 50px;color:var(--muted);font-size:14px;border-top:1px soli
 <div class="card site">
   <label for="siteIn">Your site address</label>
   <input id="siteIn" type="url" placeholder="https://my-beemcp.netlify.app" spellcheck="false" autocomplete="off">
-  <p class="small" style="margin:0;flex-basis:100%">Type it once you know it (after step 1). Every URL on this page updates to match. Nothing is sent anywhere.</p>
+  <p class="small" style="margin:0;flex-basis:100%">Type it once you know it (after step 1). Every URL on this page updates to match; until then they show this example. Nothing is sent anywhere.</p>
 </div>
 
 <p>You'll need:</p>
@@ -77,18 +79,10 @@ footer{padding:30px 0 50px;color:var(--muted);font-size:14px;border-top:1px soli
   <p>Do this first. The Beeminder app needs your site's address, and you only get that once the site exists.</p>
   <ol>
     <li>Fork <a href="https://github.com/stolati/beemcp">github.com/stolati/beemcp</a> to your GitHub account.</li>
-    <li>In Netlify, choose <b>Add new site → Import an existing project</b>, pick GitHub, and select your fork.</li>
-    <li>Leave the build settings as Netlify detects them. They come from <code>netlify.toml</code>:
-      <ul>
-        <li>Branch to deploy: <code>main</code></li>
-        <li>Build command: leave empty</li>
-        <li>Publish directory: <code>public</code></li>
-        <li>Functions directory: <code>netlify/functions</code></li>
-      </ul>
-    </li>
-    <li>Deploy. The first deploy succeeds, but sign-in won't work until you finish steps 2 and 3.</li>
+    <li>In Netlify, choose <b>Add new site → Import an existing project</b>, pick your fork, and click <b>Deploy</b>. Keep every default; the repo's <code>netlify.toml</code> sets the rest.</li>
     <li>Optional: under <b>Site configuration → Change site name</b>, pick a nicer name. Your address becomes <code>https://<i>name</i>.netlify.app</code>.</li>
   </ol>
+  <p>The site is up, but sign-in won't work until you finish steps 2 and 3.</p>
   <p>Copy the site address into the box at the top of this page.</p>
   <div class="note">Want a custom domain such as <code>bee.example.com</code>? Set it up in Netlify now, before step 2, and use it everywhere below. See <a href="#domain">Custom domains</a>.</div>
 </section>
@@ -104,8 +98,8 @@ footer{padding:30px 0 50px;color:var(--muted);font-size:14px;border-top:1px soli
     <thead><tr><th>Field</th><th>Value</th></tr></thead>
     <tbody>
       <tr><td><b>Application name</b></td><td>Anything, e.g. <code>My BeeMCP</code>. Beeminder shows it on its approval screen.</td></tr>
-      <tr><td><b>Redirect URL</b></td><td><code class="s">https://YOUR_SITE/oauth/callback</code><br><span class="small">Must match your site address exactly: <code>https</code>, no trailing slash, same hostname you'll connect with.</span></td></tr>
-      <tr><td><b>Post de-authorization callback URL</b></td><td><code class="s">https://YOUR_SITE/oauth/deauthorize</code><br><span class="small">Beeminder calls it when someone revokes the app. BeeMCP only logs it, since there's nothing stored to delete.</span></td></tr>
+      <tr><td><b>Redirect URL</b></td><td><code class="s">https://my-beemcp.netlify.app/oauth/callback</code><br><span class="small">Must match your site address exactly: <code>https</code>, no trailing slash, same hostname you'll connect with.</span></td></tr>
+      <tr><td><b>Post de-authorization callback URL</b></td><td><code class="s">https://my-beemcp.netlify.app/oauth/deauthorize</code><br><span class="small">Beeminder calls it when someone revokes the app. BeeMCP only logs it, since there's nothing stored to delete.</span></td></tr>
       <tr><td><b>Autofetch callback URL</b></td><td>Leave empty. BeeMCP doesn't provide autodata.</td></tr>
     </tbody>
   </table>
@@ -123,15 +117,15 @@ footer{padding:30px 0 50px;color:var(--muted);font-size:14px;border-top:1px soli
     <thead><tr><th>Variable</th><th>What to put</th></tr></thead>
     <tbody>
       <tr><td><code>BEEMINDER_CLIENT_ID</code><br><span class="tag">required</span></td><td>The client ID from step 2. Stray spaces are trimmed. Without it, sign-in stops with <i>"Server is not configured (BEEMINDER_CLIENT_ID)"</i>.</td></tr>
-      <tr><td><code>TOKEN_SECRET</code><br><span class="tag">required</span></td><td>A long random string, at least 32 characters. Generate one (command below) and tick <b>Contains secret values</b> in Netlify. This key encrypts every token BeeMCP hands out, so keep it private and don't reuse it elsewhere.</td></tr>
-      <tr><td><code>PUBLIC_BASE_URL</code><br><span class="tag opt">optional</span></td><td>Your public address, e.g. <code class="s">https://YOUR_SITE</code>, without a trailing slash. Normally BeeMCP uses whatever hostname a request arrived on. Set this when the site answers on several hostnames (custom domain plus <code>.netlify.app</code>) so the OAuth metadata and Beeminder redirect always use the one you registered.</td></tr>
+      <tr><td><code>TOKEN_SECRET</code><br><span class="tag">required</span></td><td>A long random string, at least 32 characters. Use the one generated below and tick <b>Contains secret values</b> in Netlify. This key encrypts every token BeeMCP hands out, so keep it private and don't reuse it elsewhere.</td></tr>
+      <tr><td><code>PUBLIC_BASE_URL</code><br><span class="tag opt">optional</span></td><td>Your public address, e.g. <code class="s">https://my-beemcp.netlify.app</code>, without a trailing slash. Normally BeeMCP uses whatever hostname a request arrived on. Set this when the site answers on several hostnames (custom domain plus <code>.netlify.app</code>) so the OAuth metadata and Beeminder redirect always use the one you registered.</td></tr>
       <tr><td><code>BEEMINDER_API_BASE</code><br><span class="tag opt">optional</span></td><td>Don't set this in production. Default: <code>https://www.beeminder.com/api/v1</code>. It exists so the tests can point BeeMCP at a fake Beeminder.</td></tr>
     </tbody>
   </table>
-  <h3>Generate <code>TOKEN_SECRET</code></h3>
-  <p>Any of these prints a 64-character random hex string. Copy the output into Netlify:</p>
-  <div class="copyable"><pre><code>openssl rand -hex 32</code></pre></div>
-  <div class="copyable"><pre><code>node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"</code></pre></div>
+  <h3>Your <code>TOKEN_SECRET</code></h3>
+  <p>Here's a fresh one: 64 random hex characters, made in your browser with <code>crypto.getRandomValues</code>. It's never sent anywhere. Copy it into Netlify.</p>
+  <div class="copyable secret"><pre><code id="secret">generating…</code></pre></div>
+  <p class="small"><button type="button" id="regen" class="link">Make another</button> · Or, in a terminal: <code>openssl rand -hex 32</code></p>
   <p class="small">Prefer the command line? With the <a href="https://docs.netlify.com/cli/get-started/">Netlify CLI</a> linked to your site:</p>
   <div class="copyable"><pre><code>netlify env:set BEEMINDER_CLIENT_ID "your-client-id"
 netlify env:set TOKEN_SECRET "$(openssl rand -hex 32)" --secret</code></pre></div>
@@ -143,10 +137,10 @@ netlify env:set TOKEN_SECRET "$(openssl rand -hex 32)" --secret</code></pre></di
 <section id="check">
   <h2><span class="n">4</span>Check it and connect</h2>
   <p>Open the OAuth metadata in a browser, or run:</p>
-  <div class="copyable"><pre><code>curl <span class="s">https://YOUR_SITE</span>/.well-known/oauth-authorization-server</code></pre></div>
-  <p>You should get JSON whose <code>issuer</code> is exactly <code class="s">https://YOUR_SITE</code>, with <code>authorization_endpoint</code> and <code>token_endpoint</code> on the same host. If the issuer shows a different hostname, set <code>PUBLIC_BASE_URL</code>.</p>
+  <div class="copyable"><pre><code>curl <span class="s">https://my-beemcp.netlify.app</span>/.well-known/oauth-authorization-server</code></pre></div>
+  <p>You should get JSON whose <code>issuer</code> is exactly <code class="s">https://my-beemcp.netlify.app</code>, with <code>authorization_endpoint</code> and <code>token_endpoint</code> on the same host. If the issuer shows a different hostname, set <code>PUBLIC_BASE_URL</code>.</p>
   <p>Then add the connector in Claude (<b>Settings → Connectors → Add custom connector</b>) with:</p>
-  <div class="copyable"><pre><code class="s">https://YOUR_SITE/mcp</code></pre></div>
+  <div class="copyable"><pre><code class="s">https://my-beemcp.netlify.app/mcp</code></pre></div>
   <p>You should see BeeMCP's approval page, then Beeminder's, with the application name you chose in step 2. If something breaks, check <b>Logs → Functions → oauth</b> in Netlify. Each sign-in step logs one line (<code>consent_shown</code>, <code>beeminder_authorized</code>, <code>token_issued</code>…), and the failing step names its reason. Tokens and secrets never appear in these logs.</p>
 </section>
 
@@ -171,8 +165,8 @@ npm test        # full sign-in and every tool, against a fake Beeminder</code></
 <section id="trouble" class="faq">
   <h2>Troubleshooting</h2>
   <details><summary>"Server is not configured (BEEMINDER_CLIENT_ID)"</summary><p>The variable is missing, or you haven't redeployed since adding it. Check that its scope includes Functions, then trigger a new deploy.</p></details>
-  <details><summary>Requests fail with a 500, and the log mentions TOKEN_SECRET</summary><p><code>TOKEN_SECRET</code> is missing or shorter than 32 characters. Generate a new one with <code>openssl rand -hex 32</code>, then redeploy.</p></details>
-  <details><summary>Beeminder shows an error about the redirect URI</summary><p>The Beeminder app's redirect URL doesn't exactly match <code class="s">https://YOUR_SITE/oauth/callback</code>. Look for a different hostname, <code>http</code> instead of <code>https</code>, or a trailing slash. If you use a custom domain, set <code>PUBLIC_BASE_URL</code> as well.</p></details>
+  <details><summary>Requests fail with a 500, and the log mentions TOKEN_SECRET</summary><p><code>TOKEN_SECRET</code> is missing or shorter than 32 characters. Use the generator in <a href="#env">step 3</a>, then redeploy.</p></details>
+  <details><summary>Beeminder shows an error about the redirect URI</summary><p>The Beeminder app's redirect URL doesn't exactly match <code class="s">https://my-beemcp.netlify.app/oauth/callback</code>. Look for a different hostname, <code>http</code> instead of <code>https</code>, or a trailing slash. If you use a custom domain, set <code>PUBLIC_BASE_URL</code> as well.</p></details>
   <details><summary>Sign-in works on one address but not another</summary><p>Beeminder only redirects to the single URL registered on the app. Pick one address, register it, set <code>PUBLIC_BASE_URL</code> to it, and connect only through that address. Deploy previews and branch deploys can't sign in for the same reason.</p></details>
   <details><summary>"Your sign-in session expired or cookies are blocked"</summary><p>More than 10 minutes passed between BeeMCP's approval page and Beeminder's, or the browser blocked BeeMCP's cookie. Start the connection again from Claude.</p></details>
   <details><summary>Everyone got signed out</summary><p>Most likely <code>TOKEN_SECRET</code> changed. That includes setting a different value per deploy context, or deleting and recreating the variable. Use one stable value.</p></details>
@@ -181,18 +175,26 @@ npm test        # full sign-in and every tool, against a fake Beeminder</code></
 <footer><a href="/">← Back to BeeMCP</a> · <a href="https://github.com/stolati/beemcp">Source on GitHub</a> · <a href="https://api.beeminder.com/">Beeminder API</a> · BeeMCP is not affiliated with Beeminder.</footer>
 </div>
 <script>
+  const DEF = "https://my-beemcp.netlify.app";
   const input = document.getElementById("siteIn");
   const targets = [...document.querySelectorAll(".s")].map(e => [e, e.textContent]);
   const guess = location.protocol === "https:" ? location.origin : "";
   function apply() {
     let v = input.value.trim().replace(/\/+$/, "");
     if (v && !/^https?:\/\//.test(v)) v = "https://" + v;
-    const host = v || "https://YOUR_SITE";
-    for (const [e, tpl] of targets) e.textContent = tpl.replace("https://YOUR_SITE", host);
+    const host = v || DEF;
+    for (const [e, tpl] of targets) e.textContent = tpl.split(DEF).join(host);
   }
   input.addEventListener("input", apply);
   if (guess && !guess.includes("beemcp.netlify.app")) { input.value = guess; }
   apply();
+  const secretEl = document.getElementById("secret");
+  function newSecret() {
+    const b = crypto.getRandomValues(new Uint8Array(32));
+    secretEl.textContent = Array.from(b, x => x.toString(16).padStart(2, "0")).join("");
+  }
+  document.getElementById("regen").onclick = newSecret;
+  newSecret();
   document.querySelectorAll(".copyable").forEach(box => {
     const b = document.createElement("button");
     b.type = "button"; b.textContent = "Copy";

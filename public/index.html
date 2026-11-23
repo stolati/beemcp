@@ -57,7 +57,7 @@ footer{padding:30px 0 50px;color:var(--muted);font-size:14px;border-top:1px soli
 <div class="wrap">
 <header>
   <a class="logo" href="/"><span class="hex"></span>BeeMCP</a>
-  <nav><a href="#setup">Setup</a><a href="#tools">Tools</a><a href="#privacy">Privacy</a></nav>
+  <nav><a href="#setup">Setup</a><a href="#tools">Tools</a><a href="#privacy">Privacy</a><a href="/self-host">Self-host</a></nav>
 </header>
 
 <div class="hero">
@@ -124,11 +124,12 @@ footer{padding:30px 0 50px;color:var(--muted);font-size:14px;border-top:1px soli
   <details open><summary>What do you store?</summary><p>Nothing. There's no database. When you approve, Beeminder gives this server an access token. That token is encrypted (AES-256-GCM) into the token Claude keeps, and only this server can decrypt it, per request. Your Beeminder password never reaches this site.</p></details>
   <details><summary>How do I disconnect?</summary><p>Remove the connector in Claude. To cut access completely, revoke the app in Beeminder under Account settings → Apps &amp; API. Any token Claude still holds stops working right away.</p></details>
   <details><summary>Can it charge me money?</summary><p>It can't change pledges or create new goals. Ratcheting and adding or deleting datapoints do affect whether a goal derails, so Claude is told to check with you before doing those.</p></details>
-  <details><summary>Is this made by Beeminder?</summary><p>No. It's an independent open-source project that uses Beeminder's public API and OAuth. The code is on <a href="https://github.com/stolati/beemcp">GitHub</a>, and you can host your own copy on Netlify in a few minutes.</p></details>
+  <details><summary>Is this made by Beeminder?</summary><p>No. It's an independent open-source project that uses Beeminder's public API and OAuth. The code is on <a href="https://github.com/stolati/beemcp">GitHub</a>, and you can <a href="/self-host">host your own copy</a> on Netlify in a few minutes.</p></details>
+  <details><summary>Can I host my own copy?</summary><p>Yes. It's a free Netlify site, one Beeminder app and two environment variables. The <a href="/self-host">self-hosting guide</a> walks through every value.</p></details>
   <details><summary>Where's the source code?</summary><p><a href="https://github.com/stolati/beemcp">github.com/stolati/beemcp</a>. Read exactly what runs, open issues, or send pull requests.</p></details>
 </section>
 
-<footer>BeeMCP is not affiliated with Beeminder. Beeminder is a trademark of its owners. · <a href="https://github.com/stolati/beemcp">Source on GitHub</a> · <a href="https://api.beeminder.com/">Beeminder API</a> · <a href="https://modelcontextprotocol.io/">Model Context Protocol</a></footer>
+<footer>BeeMCP is not affiliated with Beeminder. Beeminder is a trademark of its owners. · <a href="https://github.com/stolati/beemcp">Source on GitHub</a> · <a href="/self-host">Self-host</a> · <a href="https://api.beeminder.com/">Beeminder API</a> · <a href="https://modelcontextprotocol.io/">Model Context Protocol</a></footer>
 </div>
 <script>
   const url = location.origin.startsWith("http") ? location.origin + "/mcp" : "https://beemcp.dev/mcp";

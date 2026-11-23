@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Self-host BeeMCP</title>
+<meta name="description" content="Run your own copy of BeeMCP on Netlify: create a Beeminder app, set the environment variables, and connect Claude.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path d='M32 4 56 18v28L32 60 8 46V18z' fill='%23f5b800'/></svg>">
+<style>
+:root{--ink:#1d1a12;--muted:#6b6455;--bg:#fbf7ec;--card:#fff;--line:#e8dfc7;--bee:#f5b800;--bee2:#ffe9a6;--red:#d6453d;--green:#2f8f4e}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:inherit}
+.wrap{max-width:820px;margin:0 auto;padding:0 22px}
+header{padding:22px 0;display:flex;justify-content:space-between;align-items:center}
+.logo{display:flex;gap:10px;align-items:center;font-weight:800;letter-spacing:-.02em;font-size:19px;text-decoration:none}
+.hex{width:26px;height:26px;background:var(--bee);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+nav a{color:var(--muted);text-decoration:none;margin-left:18px;font-size:15px}
+h1{font-size:clamp(32px,5vw,48px);line-height:1.05;letter-spacing:-.03em;margin:30px 0 14px}
+h1 em{font-style:normal;background:linear-gradient(transparent 62%,var(--bee2) 62%)}
+.lede{color:var(--muted);font-size:19px;margin:0 0 26px}
+section{padding:36px 0;border-top:1px solid var(--line)}
+h2{font-size:26px;letter-spacing:-.02em;margin:0 0 16px;display:flex;gap:12px;align-items:center}
+h2 .n{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:50%;background:var(--bee);font-size:16px;font-weight:800}
+h3{font-size:18px;margin:22px 0 8px}
+p,li{max-width:70ch}
+ol,ul{padding-left:22px}li{margin:6px 0}
+code{font:14.5px ui-monospace,SFMono-Regular,Menlo,monospace;background:#f3ecd8;padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
+pre{background:#1d1a12;color:#f8eecf;padding:14px 16px;border-radius:12px;overflow:auto;font:14px/1.5 ui-monospace,Menlo,monospace}
+pre code{background:none;padding:0;font:inherit}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 22px;margin:14px 0}
+.site{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.site label{font-weight:700}
+.site input{flex:1;min-width:220px;font:15px ui-monospace,Menlo,monospace;padding:10px 12px;border:1.5px solid var(--ink);border-radius:10px;background:#fff;color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{text-align:left;vertical-align:top;padding:10px 8px;border-bottom:1px solid var(--line)}
+th{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+td:first-child{white-space:nowrap}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:99px;color:#fff;background:var(--red);vertical-align:2px}
+.tag.opt{background:var(--muted)}
+.note{border-left:4px solid var(--bee);background:#fff8e0;padding:12px 16px;border-radius:0 12px 12px 0;margin:14px 0}
+.warn{border-left-color:var(--red);background:#fdecea}
+.small{color:var(--muted);font-size:14px}
+.copyable{position:relative}.copyable pre{padding-right:72px}
+.copyable button{position:absolute;top:8px;right:8px;font:600 12px inherit;font-family:inherit;border:0;border-radius:8px;padding:5px 10px;background:#3b352a;color:#f8eecf;cursor:pointer}
+.faq details{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin:10px 0}
+.faq summary{font-weight:700;cursor:pointer}.faq details p{color:var(--muted);margin:10px 0 0}
+footer{padding:30px 0 50px;color:var(--muted);font-size:14px;border-top:1px solid var(--line)}
+@media (max-width:640px){nav{display:none}td:first-child{white-space:normal}table,thead,tbody,tr,td{display:block}thead{display:none}tr{border-bottom:1px solid var(--line);padding:8px 0}td{border:0;padding:4px 0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <a class="logo" href="/"><span class="hex"></span>BeeMCP</a>
+  <nav><a href="/">Home</a><a href="#beeminder">Beeminder app</a><a href="#env">Env vars</a><a href="#trouble">Troubleshooting</a></nav>
+</header>
+
+<h1>Host your own <em>BeeMCP</em></h1>
+<p class="lede">BeeMCP has no database, so your own copy is just a Netlify site, one Beeminder app and two environment variables. It takes about ten minutes and fits in Netlify's free plan.</p>
+
+<div class="card site">
+  <label for="siteIn">Your site address</label>
+  <input id="siteIn" type="url" placeholder="https://my-beemcp.netlify.app" spellcheck="false" autocomplete="off">
+  <p class="small" style="margin:0;flex-basis:100%">Type it once you know it (after step 1). Every URL on this page updates to match. Nothing is sent anywhere.</p>
+</div>
+
+<p>You'll need:</p>
+<ul>
+  <li>A <a href="https://www.beeminder.com">Beeminder</a> account. Any Beeminder account can register an API app.</li>
+  <li>A <a href="https://github.com">GitHub</a> account (to fork the code) and a free <a href="https://www.netlify.com">Netlify</a> account.</li>
+</ul>
+
+<section id="deploy">
+  <h2><span class="n">1</span>Deploy the site to Netlify</h2>
+  <p>Do this first. The Beeminder app needs your site's address, and you only get that once the site exists.</p>
+  <ol>
+    <li>Fork <a href="https://github.com/stolati/beemcp">github.com/stolati/beemcp</a> to your GitHub account.</li>
+    <li>In Netlify, choose <b>Add new site → Import an existing project</b>, pick GitHub, and select your fork.</li>
+    <li>Leave the build settings as Netlify detects them. They come from <code>netlify.toml</code>:
+      <ul>
+        <li>Branch to deploy: <code>main</code></li>
+        <li>Build command: leave empty</li>
+        <li>Publish directory: <code>public</code></li>
+        <li>Functions directory: <code>netlify/functions</code></li>
+      </ul>
+    </li>
+    <li>Deploy. The first deploy succeeds, but sign-in won't work until you finish steps 2 and 3.</li>
+    <li>Optional: under <b>Site configuration → Change site name</b>, pick a nicer name. Your address becomes <code>https://<i>name</i>.netlify.app</code>.</li>
+  </ol>
+  <p>Copy the site address into the box at the top of this page.</p>
+  <div class="note">Want a custom domain such as <code>bee.example.com</code>? Set it up in Netlify now, before step 2, and use it everywhere below. See <a href="#domain">Custom domains</a>.</div>
+</section>
+
+<section id="beeminder">
+  <h2><span class="n">2</span>Create a Beeminder app</h2>
+  <p>This is what users approve on beeminder.com. BeeMCP uses Beeminder's client-side OAuth flow, so it only needs the app's <b>ID</b>, never the secret.</p>
+  <ol>
+    <li>Sign in to Beeminder and open <a href="https://www.beeminder.com/apps/new">beeminder.com/apps/new</a>.</li>
+    <li>Fill in the form:</li>
+  </ol>
+  <table>
+    <thead><tr><th>Field</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td><b>Application name</b></td><td>Anything, e.g. <code>My BeeMCP</code>. Beeminder shows it on its approval screen.</td></tr>
+      <tr><td><b>Redirect URL</b></td><td><code class="s">https://YOUR_SITE/oauth/callback</code><br><span class="small">Must match your site address exactly: <code>https</code>, no trailing slash, same hostname you'll connect with.</span></td></tr>
+      <tr><td><b>Post de-authorization callback URL</b></td><td><code class="s">https://YOUR_SITE/oauth/deauthorize</code><br><span class="small">Beeminder calls it when someone revokes the app. BeeMCP only logs it, since there's nothing stored to delete.</span></td></tr>
+      <tr><td><b>Autofetch callback URL</b></td><td>Leave empty. BeeMCP doesn't provide autodata.</td></tr>
+    </tbody>
+  </table>
+  <ol start="3">
+    <li>Save. Beeminder shows the app's <b>client ID</b> and <b>client secret</b>. You can find them again later at <a href="https://www.beeminder.com/apps">beeminder.com/apps</a>.</li>
+    <li>Copy the <b>client ID</b>. Ignore the secret.</li>
+  </ol>
+  <div class="note">Beeminder allows one redirect URL per app. If you later change your site address, edit the app's redirect URL to match. To use BeeMCP locally or on a second site, create a second Beeminder app.</div>
+</section>
+
+<section id="env">
+  <h2><span class="n">3</span>Set the environment variables</h2>
+  <p>In Netlify, open <b>Site configuration → Environment variables → Add a variable</b>. Add these with the <b>Functions</b> scope, the same value for all deploy contexts:</p>
+  <table>
+    <thead><tr><th>Variable</th><th>What to put</th></tr></thead>
+    <tbody>
+      <tr><td><code>BEEMINDER_CLIENT_ID</code><br><span class="tag">required</span></td><td>The client ID from step 2. Stray spaces are trimmed. Without it, sign-in stops with <i>"Server is not configured (BEEMINDER_CLIENT_ID)"</i>.</td></tr>
+      <tr><td><code>TOKEN_SECRET</code><br><span class="tag">required</span></td><td>A long random string, at least 32 characters. Generate one (command below) and tick <b>Contains secret values</b> in Netlify. This key encrypts every token BeeMCP hands out, so keep it private and don't reuse it elsewhere.</td></tr>
+      <tr><td><code>PUBLIC_BASE_URL</code><br><span class="tag opt">optional</span></td><td>Your public address, e.g. <code class="s">https://YOUR_SITE</code>, without a trailing slash. Normally BeeMCP uses whatever hostname a request arrived on. Set this when the site answers on several hostnames (custom domain plus <code>.netlify.app</code>) so the OAuth metadata and Beeminder redirect always use the one you registered.</td></tr>
+      <tr><td><code>BEEMINDER_API_BASE</code><br><span class="tag opt">optional</span></td><td>Don't set this in production. Default: <code>https://www.beeminder.com/api/v1</code>. It exists so the tests can point BeeMCP at a fake Beeminder.</td></tr>
+    </tbody>
+  </table>
+  <h3>Generate <code>TOKEN_SECRET</code></h3>
+  <p>Any of these prints a 64-character random hex string. Copy the output into Netlify:</p>
+  <div class="copyable"><pre><code>openssl rand -hex 32</code></pre></div>
+  <div class="copyable"><pre><code>node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"</code></pre></div>
+  <p class="small">Prefer the command line? With the <a href="https://docs.netlify.com/cli/get-started/">Netlify CLI</a> linked to your site:</p>
+  <div class="copyable"><pre><code>netlify env:set BEEMINDER_CLIENT_ID "your-client-id"
+netlify env:set TOKEN_SECRET "$(openssl rand -hex 32)" --secret</code></pre></div>
+  <div class="note warn"><b>Changing <code>TOKEN_SECRET</code> signs everyone out.</b> Every token already handed to Claude becomes unreadable, and users have to reconnect. That's also your emergency switch if you think the secret leaked.</div>
+  <h3>Redeploy</h3>
+  <p>Environment variables only reach functions on the next deploy. Go to <b>Deploys → Trigger deploy → Deploy site</b>.</p>
+</section>
+
+<section id="check">
+  <h2><span class="n">4</span>Check it and connect</h2>
+  <p>Open the OAuth metadata in a browser, or run:</p>
+  <div class="copyable"><pre><code>curl <span class="s">https://YOUR_SITE</span>/.well-known/oauth-authorization-server</code></pre></div>
+  <p>You should get JSON whose <code>issuer</code> is exactly <code class="s">https://YOUR_SITE</code>, with <code>authorization_endpoint</code> and <code>token_endpoint</code> on the same host. If the issuer shows a different hostname, set <code>PUBLIC_BASE_URL</code>.</p>
+  <p>Then add the connector in Claude (<b>Settings → Connectors → Add custom connector</b>) with:</p>
+  <div class="copyable"><pre><code class="s">https://YOUR_SITE/mcp</code></pre></div>
+  <p>You should see BeeMCP's approval page, then Beeminder's, with the application name you chose in step 2. If something breaks, check <b>Logs → Functions → oauth</b> in Netlify. Each sign-in step logs one line (<code>consent_shown</code>, <code>beeminder_authorized</code>, <code>token_issued</code>…), and the failing step names its reason. Tokens and secrets never appear in these logs.</p>
+</section>
+
+<section id="domain">
+  <h2>Custom domains</h2>
+  <ol>
+    <li>Add the domain in Netlify under <b>Domain management</b> and wait for HTTPS to be ready.</li>
+    <li>Update the Beeminder app's redirect and de-authorization URLs to the new domain.</li>
+    <li>Set <code>PUBLIC_BASE_URL</code> to <code>https://</code> plus the new domain, then redeploy.</li>
+    <li>Users connect with the new <code>/mcp</code> URL. Existing connections keep working because tokens don't depend on the hostname. They only depend on <code>TOKEN_SECRET</code>.</li>
+  </ol>
+</section>
+
+<section id="updates">
+  <h2>Staying up to date</h2>
+  <p>On GitHub, use <b>Sync fork</b> on your fork to pull in upstream changes. Netlify redeploys automatically when <code>main</code> changes, and your environment variables carry over. Before changing the code yourself, run the tests:</p>
+  <div class="copyable"><pre><code>npm install
+npm run typecheck
+npm test        # full sign-in and every tool, against a fake Beeminder</code></pre></div>
+</section>
+
+<section id="trouble" class="faq">
+  <h2>Troubleshooting</h2>
+  <details><summary>"Server is not configured (BEEMINDER_CLIENT_ID)"</summary><p>The variable is missing, or you haven't redeployed since adding it. Check that its scope includes Functions, then trigger a new deploy.</p></details>
+  <details><summary>Requests fail with a 500, and the log mentions TOKEN_SECRET</summary><p><code>TOKEN_SECRET</code> is missing or shorter than 32 characters. Generate a new one with <code>openssl rand -hex 32</code>, then redeploy.</p></details>
+  <details><summary>Beeminder shows an error about the redirect URI</summary><p>The Beeminder app's redirect URL doesn't exactly match <code class="s">https://YOUR_SITE/oauth/callback</code>. Look for a different hostname, <code>http</code> instead of <code>https</code>, or a trailing slash. If you use a custom domain, set <code>PUBLIC_BASE_URL</code> as well.</p></details>
+  <details><summary>Sign-in works on one address but not another</summary><p>Beeminder only redirects to the single URL registered on the app. Pick one address, register it, set <code>PUBLIC_BASE_URL</code> to it, and connect only through that address. Deploy previews and branch deploys can't sign in for the same reason.</p></details>
+  <details><summary>"Your sign-in session expired or cookies are blocked"</summary><p>More than 10 minutes passed between BeeMCP's approval page and Beeminder's, or the browser blocked BeeMCP's cookie. Start the connection again from Claude.</p></details>
+  <details><summary>Everyone got signed out</summary><p>Most likely <code>TOKEN_SECRET</code> changed. That includes setting a different value per deploy context, or deleting and recreating the variable. Use one stable value.</p></details>
+</section>
+
+<footer><a href="/">← Back to BeeMCP</a> · <a href="https://github.com/stolati/beemcp">Source on GitHub</a> · <a href="https://api.beeminder.com/">Beeminder API</a> · BeeMCP is not affiliated with Beeminder.</footer>
+</div>
+<script>
+  const input = document.getElementById("siteIn");
+  const targets = [...document.querySelectorAll(".s")].map(e => [e, e.textContent]);
+  const guess = location.protocol === "https:" ? location.origin : "";
+  function apply() {
+    let v = input.value.trim().replace(/\/+$/, "");
+    if (v && !/^https?:\/\//.test(v)) v = "https://" + v;
+    const host = v || "https://YOUR_SITE";
+    for (const [e, tpl] of targets) e.textContent = tpl.replace("https://YOUR_SITE", host);
+  }
+  input.addEventListener("input", apply);
+  if (guess && !guess.includes("beemcp.netlify.app")) { input.value = guess; }
+  apply();
+  document.querySelectorAll(".copyable").forEach(box => {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = "Copy";
+    b.onclick = async () => {
+      try { await navigator.clipboard.writeText(box.querySelector("pre").innerText); b.textContent = "Copied"; }
+      catch { b.textContent = "Select & copy"; }
+      setTimeout(() => b.textContent = "Copy", 1500);
+    };
+    box.appendChild(b);
+  });
+</script>
+</body>
+</html>

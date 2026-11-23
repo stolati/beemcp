@@ -74,6 +74,8 @@ Neither one ever contains a token, code or secret. As a safety net, everything l
 
 ## Deploy your own (Netlify)
 
+The full walkthrough, with every value and a troubleshooting list, is at <https://beemcp.netlify.app/self-host>.
+
 1. Register an app at <https://www.beeminder.com/apps/new>:
    - Redirect URL: `https://YOUR_SITE/oauth/callback`
    - Post de-authorization callback: `https://YOUR_SITE/oauth/deauthorize`
